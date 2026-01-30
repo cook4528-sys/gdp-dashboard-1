@@ -169,6 +169,29 @@ def ensure_required_features(
 
     return out, filled
 
+import time
+
+ALERT_COOLDOWN_SEC = 6 * 60 * 60  # 동일 사이트 알람 재전송 최소 간격(예: 6시간)
+
+def _last_sent_map(alert_state: dict) -> dict:
+    if not isinstance(alert_state, dict):
+        return {}
+    m = alert_state.get("last_sent")
+    if not isinstance(m, dict):
+        alert_state["last_sent"] = {}
+        m = alert_state["last_sent"]
+    return m
+
+def can_send(alert_state: dict, site: str, cooldown_sec: int = ALERT_COOLDOWN_SEC) -> bool:
+    m = _last_sent_map(alert_state)
+    now = time.time()
+    last = float(m.get(str(site), 0.0))
+    return (now - last) >= cooldown_sec
+
+def mark_sent(alert_state: dict, site: str) -> None:
+    m = _last_sent_map(alert_state)
+    m[str(site)] = time.time()
+
 def main():
     # ===== 전역 UI 상태 기본값 =====
     if "ui_dark_mode" not in st.session_state:
